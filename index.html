@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
   <style>
-    /* VARIABLES DE COLOR - ADAPTADAS A VENTO ATC */
+    /* VARIABLES DE COLOR - VENTO ATC */
     :root {
       --white: #ffffff;
       --orange: #ff5722;      /* Naranja Vento */
@@ -77,8 +77,9 @@
       margin: 6px 0 0;
     }
 
-    .hero-badge {
-      min-width: 180px;
+    /* RELOJ EN TIEMPO REAL */
+    .hero-clock {
+      min-width: 150px;
       padding: 10px 14px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 87, 34, 0.3);
@@ -86,22 +87,22 @@
       text-align: right;
     }
 
-    .hero-badge span {
+    .hero-clock span {
       display: block;
       color: #94a3b8;
       font-size: 11px;
       margin-bottom: 2px;
     }
 
-    .hero-badge strong {
+    .hero-clock strong {
       color: var(--orange);
-      font-size: 13px;
+      font-size: 16px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
     }
 
     /* CONTENEDORES BASE */
     .controls-card,
-    .summary-card,
-    .status-panel,
     .result-card {
       background: var(--white);
       border: 1px solid var(--border);
@@ -112,7 +113,7 @@
     /* FILTROS Y CONTROLES */
     .controls-card {
       padding: 15px;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
     }
 
     .controls-grid {
@@ -172,48 +173,6 @@
       background: var(--orange-dark);
     }
 
-    /* RESUMEN DE REGISTROS */
-    .summary-row {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 15px;
-      margin-bottom: 15px;
-    }
-
-    .summary-card {
-      padding: 12px 15px;
-    }
-
-    .summary-card span {
-      display: block;
-      color: var(--gray);
-      font-size: 12px;
-      margin-bottom: 4px;
-    }
-
-    .summary-card strong {
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--dark-blue);
-    }
-
-    /* PANEL DE ESTADO/CARGA */
-    .status-panel {
-      padding: 12px 15px;
-      margin-bottom: 15px;
-      color: var(--dark-blue);
-      font-size: 13px;
-      font-weight: 600;
-      background: #e0f2fe;
-      border-left: 4px solid #38bdf8;
-    }
-
-    .status-panel.error {
-      border-left-color: #ef4444;
-      background: #fee2e2;
-      color: #b91c1c;
-    }
-
     /* CUADRÍCULA DE RESULTADOS */
     .results-grid {
       display: grid;
@@ -221,7 +180,7 @@
       gap: 15px;
     }
 
-    /* TARJETAS DE RESULTADOS (DISEÑO FORMATO ATC) */
+    /* TARJETAS DE RESULTADOS */
     .result-card {
       padding: 16px;
       display: flex;
@@ -304,8 +263,7 @@
     /* RESPONSIVE */
     @media (max-width: 900px) {
       .hero,
-      .controls-grid,
-      .summary-row {
+      .controls-grid {
         grid-template-columns: 1fr;
         display: grid;
       }
@@ -314,7 +272,7 @@
         align-items: start;
       }
 
-      .hero-badge {
+      .hero-clock {
         text-align: left;
       }
     }
@@ -328,13 +286,13 @@
         <p class="eyebrow">MÓDULO DE SVE</p>
         <h1>Buscador Oficial de CESVE</h1>
         <p class="hero-copy">
-          Encuentra rápidamente centros, contactos y datos de la hoja oficial de CESVE.
-          El buscador se conecta directamente a la fuente indicada y filtra por texto, estado y municipio.
+          Encuentra rápidamente centros, contactos y datos de la hoja oficial de CESVE. 
+          Filtra dinámicamente por texto libre, estado y sus municipios correspondientes.
         </p>
       </div>
-      <div class="hero-badge">
-        <span>Fuente en tiempo real</span>
-        <strong>Google Sheets Vento</strong>
+      <div class="hero-clock">
+        <span>Hora de operación</span>
+        <strong id="relojATC">00:00:00</strong>
       </div>
     </header>
 
@@ -352,7 +310,7 @@
 
           <label class="field">
             <span>Estado</span>
-            <select id="stateFilter">
+            <select id="stateFilter" onchange="actualizarFiltroMunicipios()">
               <option value="">Todos los estados</option>
             </select>
           </label>
@@ -368,25 +326,6 @@
             <button id="clearFilters" type="button"><i class="fa-solid fa-filter-circle-xmark"></i> Limpiar filtros</button>
           </div>
         </div>
-      </section>
-
-      <section class="summary-row">
-        <div class="summary-card">
-          <span>Total de registros</span>
-          <strong id="totalRecords">0</strong>
-        </div>
-        <div class="summary-card">
-          <span>Resultados visibles</span>
-          <strong id="visibleResults">0</strong>
-        </div>
-        <div class="summary-card">
-          <span>Estado seleccionado</span>
-          <strong id="currentState">Todos</strong>
-        </div>
-      </section>
-
-      <section class="status-panel" id="statusPanel" aria-live="polite">
-        <p><i class="fa-solid fa-spinner fa-spin"></i> Conectando con la hoja oficial para cargar los datos de talleres...</p>
       </section>
 
       <section id="resultsContainer" class="results-grid" aria-live="polite"></section>
@@ -413,21 +352,16 @@
     const stateFilter = document.getElementById('stateFilter');
     const cityFilter = document.getElementById('cityFilter');
     const clearFiltersButton = document.getElementById('clearFilters');
-    const statusPanel = document.getElementById('statusPanel');
     const resultsContainer = document.getElementById('resultsContainer');
     const resultTemplate = document.getElementById('resultTemplate');
-    const totalRecords = document.getElementById('totalRecords');
-    const visibleResults = document.getElementById('visibleResults');
-    const currentState = document.getElementById('currentState');
 
     let rows = [];
     let allStates = [];
-    let allCities = [];
 
-    function setStatus(message, isError = false) {
-      statusPanel.classList.toggle('error', isError);
-      statusPanel.innerHTML = `<p>${message}</p>`;
-    }
+    // RELOJ EN TIEMPO REAL ACTIVO
+    setInterval(() => {
+      document.getElementById('relojATC').innerText = new Date().toLocaleTimeString();
+    }, 1000);
 
     function parseCsv(text) {
       const rows = [];
@@ -511,10 +445,8 @@
       };
     }
 
-    function renderFilters() {
+    function cargarEstadosEnFiltro() {
       stateFilter.innerHTML = '<option value="">Todos los estados</option>';
-      cityFilter.innerHTML = '<option value="">Todas las ciudades</option>';
-
       allStates
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b))
@@ -524,22 +456,38 @@
           option.textContent = state;
           stateFilter.appendChild(option);
         });
+      
+      // Inicializar el filtro de ciudades vacío o completo
+      actualizarFiltroMunicipios();
+    }
 
-      allCities
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b))
-        .forEach((city) => {
-          const option = document.createElement('option');
-          option.value = city;
-          option.textContent = city;
-          cityFilter.appendChild(option);
-        });
+    // EVENTO CLAVE: Cambia los municipios según el Estado seleccionado
+    function actualizarFiltroMunicipios() {
+      const estadoSeleccionado = normalize(stateFilter.value);
+      cityFilter.innerHTML = '<option value="">Todas las ciudades</option>';
+
+      // Si hay estado seleccionado, filtra los municipios de ese estado, si no, toma todos los existentes
+      const municipiosFiltrados = rows
+        .filter(row => !estadoSeleccionado || normalize(row['ESTADO']) === estadoSeleccionado)
+        .map(row => row['CIUDAD / MUNICIPIO'])
+        .filter(Boolean);
+
+      // Eliminar duplicados de municipios y ordenarlos
+      const ciudadesUnicas = [...new Set(municipiosFiltrados)].sort((a, b) => a.localeCompare(b));
+
+      ciudadesUnicas.forEach((city) => {
+        const option = document.createElement('option');
+        option.value = city;
+        option.textContent = city;
+        cityFilter.appendChild(option);
+      });
+
+      // Ejecutar filtrado de tarjetas
+      filterRecords();
     }
 
     function renderResults(filteredRows) {
       resultsContainer.innerHTML = '';
-      visibleResults.textContent = filteredRows.length;
-      totalRecords.textContent = rows.length;
 
       if (!filteredRows.length) {
         const empty = document.createElement('div');
@@ -594,13 +542,11 @@
         return matchesSearch && matchesState && matchesCity;
       });
 
-      currentState.textContent = stateFilter.value || 'Todos';
       renderResults(filtered);
     }
 
     async function loadSheet() {
       try {
-        setStatus('<i class="fa-solid fa-spinner fa-spin"></i> Cargando datos de la hoja oficial...');
         const response = await fetch(SHEET_URL, { mode: 'cors', redirect: 'follow' });
 
         if (!response.ok) {
@@ -618,25 +564,21 @@
         rows = parsed.slice(1).map((csvRow) => buildRecord(csvRow, headers));
 
         allStates = [...new Set(rows.map((row) => row['ESTADO']).filter(Boolean))];
-        allCities = [...new Set(rows.map((row) => row['CIUDAD / MUNICIPIO']).filter(Boolean))];
 
-        renderFilters();
-        filterRecords();
-        setStatus(`<i class="fa-solid fa-circle-check" style="color: #22c55e;"></i> Datos cargados correctamente: ${rows.length} registros de CESVE disponibles.`);
+        cargarEstadosEnFiltro();
       } catch (error) {
         console.error(error);
-        setStatus(`<i class="fa-solid fa-triangle-exclamation"></i> No fue posible cargar la hoja. Revisa la URL o intenta nuevamente. ${error.message}`, true);
+        resultsContainer.innerHTML = `<div class="empty-state"><h2 style="color:#ef4444;">Error de Conexión</h2><p>No fue posible enlazar con la base de datos de Google Sheets. Detalles: ${error.message}</p></div>`;
       }
     }
 
     searchInput.addEventListener('input', filterRecords);
-    stateFilter.addEventListener('change', filterRecords);
     cityFilter.addEventListener('change', filterRecords);
+    
     clearFiltersButton.addEventListener('click', () => {
       searchInput.value = '';
       stateFilter.value = '';
-      cityFilter.value = '';
-      filterRecords();
+      actualizarFiltroMunicipios(); // Limpia y restablece cascada de municipios
     });
 
     loadSheet();
