@@ -48,10 +48,6 @@
       border-radius: 8px;
       margin-bottom: 20px;
       border-left: 5px solid var(--orange);
-      display: flex;
-      justify-content: space-between;
-      gap: 1.5rem;
-      align-items: center;
     }
 
     .eyebrow {
@@ -75,30 +71,6 @@
       font-size: 13px;
       line-height: 1.5;
       margin: 6px 0 0;
-    }
-
-    /* RELOJ EN TIEMPO REAL */
-    .hero-clock {
-      min-width: 150px;
-      padding: 10px 14px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 87, 34, 0.3);
-      border-radius: 6px;
-      text-align: right;
-    }
-
-    .hero-clock span {
-      display: block;
-      color: #94a3b8;
-      font-size: 11px;
-      margin-bottom: 2px;
-    }
-
-    .hero-clock strong {
-      color: var(--orange);
-      font-size: 16px;
-      font-weight: 800;
-      font-variant-numeric: tabular-nums;
     }
 
     /* CONTENEDORES BASE */
@@ -267,14 +239,6 @@
         grid-template-columns: 1fr;
         display: grid;
       }
-
-      .hero {
-        align-items: start;
-      }
-
-      .hero-clock {
-        text-align: left;
-      }
     }
   </style>
 </head>
@@ -282,18 +246,12 @@
 
   <div class="page-shell">
     <header class="hero">
-      <div>
-        <p class="eyebrow">MÓDULO DE SVE</p>
-        <h1>Buscador Oficial de CESVE</h1>
-        <p class="hero-copy">
-          Encuentra rápidamente centros, contactos y datos de la hoja oficial de CESVE. 
-          Filtra dinámicamente por texto libre, estado y sus municipios correspondientes.
-        </p>
-      </div>
-      <div class="hero-clock">
-        <span>Hora de operación</span>
-        <strong id="relojATC">00:00:00</strong>
-      </div>
+      <p class="eyebrow">MÓDULO DE SVE</p>
+      <h1>Buscador Oficial de CESVE</h1>
+      <p class="hero-copy">
+        Encuentra rápidamente centros, contactos y datos de la hoja oficial de CESVE. 
+        Filtra dinámicamente por texto libre, estado y sus municipios correspondientes.
+      </p>
     </header>
 
     <main>
@@ -357,11 +315,6 @@
 
     let rows = [];
     let allStates = [];
-
-    // RELOJ EN TIEMPO REAL ACTIVO
-    setInterval(() => {
-      document.getElementById('relojATC').innerText = new Date().toLocaleTimeString();
-    }, 1000);
 
     function parseCsv(text) {
       const rows = [];
@@ -457,22 +410,18 @@
           stateFilter.appendChild(option);
         });
       
-      // Inicializar el filtro de ciudades vacío o completo
       actualizarFiltroMunicipios();
     }
 
-    // EVENTO CLAVE: Cambia los municipios según el Estado seleccionado
     function actualizarFiltroMunicipios() {
       const estadoSeleccionado = normalize(stateFilter.value);
       cityFilter.innerHTML = '<option value="">Todas las ciudades</option>';
 
-      // Si hay estado seleccionado, filtra los municipios de ese estado, si no, toma todos los existentes
       const municipiosFiltrados = rows
         .filter(row => !estadoSeleccionado || normalize(row['ESTADO']) === estadoSeleccionado)
         .map(row => row['CIUDAD / MUNICIPIO'])
         .filter(Boolean);
 
-      // Eliminar duplicados de municipios y ordenarlos
       const ciudadesUnicas = [...new Set(municipiosFiltrados)].sort((a, b) => a.localeCompare(b));
 
       ciudadesUnicas.forEach((city) => {
@@ -482,7 +431,6 @@
         cityFilter.appendChild(option);
       });
 
-      // Ejecutar filtrado de tarjetas
       filterRecords();
     }
 
@@ -578,7 +526,7 @@
     clearFiltersButton.addEventListener('click', () => {
       searchInput.value = '';
       stateFilter.value = '';
-      actualizarFiltroMunicipios(); // Limpia y restablece cascada de municipios
+      actualizarFiltroMunicipios();
     });
 
     loadSheet();
